@@ -7,6 +7,6 @@ export async function setExpress(app: express.Application) {
   app.use(express.json());
   app.use(express.urlencoded({ extended: false }));
   useExpressServer(app, {
-    controllers: [path.join(`${__dirname}/../controller/*.ts`)],
+    controllers: [path.join(`${__dirname}/../controller/*`)],
   });
 }
