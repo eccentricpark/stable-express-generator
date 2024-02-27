@@ -18,7 +18,9 @@ express는 node.js 기반 웹 프레임워크입니다.
 router.get('/', (req, res, next)=>{
   ...
 })
-``
+```
+
+useExpressServer는 클래스 형태로 라우터를 지정해줍니다.
 
 ```
 import express from "express";
@@ -34,11 +36,10 @@ export async function setExpress(app: express.Application) {
   });
 }
 ```
-useExpressServer는 클래스 형태로 라우터를 지정해줍니다.
-
 
 
 아래는 클래스형태로 작성된 app.controller.ts의 예시입니다.
+
 ```
 import { JsonController, Get, Req, Res } from 'routing-controllers';
 import { Response, NextFunction, Request } from 'express';
