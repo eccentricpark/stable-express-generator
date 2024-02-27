@@ -10,6 +10,7 @@ express는 node.js 기반 웹 프레임워크입니다.
 때문에, custom express server를 구축했습니다. 
 
 
+
 # loader
 기존의 express는 아래와 같이 라우터를 정했을 겁니다.
 
@@ -23,6 +24,7 @@ router.get('/', (req, res, next)=>{
 useExpressServer는 클래스 형태로 라우터를 지정해줍니다.
 
 ```
+// loader/express.ts
 import express from "express";
 import { useExpressServer } from 'routing-controllers';
 import path from 'path';
@@ -36,28 +38,130 @@ export async function setExpress(app: express.Application) {
   });
 }
 ```
-
-
-아래는 클래스형태로 작성된 app.controller.ts의 예시입니다.
+loader 내 express.ts 파일에서 서버 옵션을 추가해주면 됩니다.
+예를 들어, cors를 적용한다면, 아래처럼 적으면 되겠죠?
 
 ```
-import { JsonController, Get, Req, Res } from 'routing-controllers';
-import { Response, NextFunction, Request } from 'express';
+...
 
-@JsonController('/')
-export class AppController {
+import cors from 'cors';
 
-  constructor() {}
+export async function setExpress(app: express.Application) {
+
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: false }));
+  app.use(cors()); // cors 추가
+  useExpressServer(app, {
+    controllers: [path.join(`${__dirname}/../controller/*`)],
+  });
+}
+
+```
+
+
+# Controller
+아래는 클래스형태로 작성된 user.controller.ts의 예시입니다.
+
+```
+// user.controller.ts
+...
+
+@JsonController('/user')
+export class UserController {
+  private userService: UserService;
+
+  constructor() {
+    this.userService = Container.get(UserService); 
+  }
 
   @Get('/')
   sayHello(@Req() request: Request, @Res() response: Response, next : NextFunction) {
-    return response.send(`
-      <h1>
-        Hello world!
-      </h1>
-    `);
+    try {
+      const say = this.userService.sayHello("Park");
+      return response.status(200).json({
+        data: say,
+        message: "This is user router"
+      });
+    } catch (error) {
+      console.error(error);
+      next(error);
+    }
   }
+
+  ...
 }
 ```
 
 Service와 Repository도 클래스 형태이므로, 일관성 있는 구조를 유지할 수 있습니다.
+
+### 문제점
+Controller에서 Container를 쓰는데 아래와 같은 코드로 작성하면 오동작합니다.
+
+```
+// user.controller.ts
+@JsonController('/user')
+export class UserController {
+
+  // 오류 발생!
+  constructor(private userService: UserService) {}
+  ...
+}
+
+```
+
+일관성 있는 구조를 유지해야 하므로, 최대한 빨리 해결방법을 찾아보겠습니다.
+만약 방법이 없다면 Controller는 Container에서 Service를 받아오는 방식을 그대로 두겠습니다.
+
+
+# service
+
+```
+// user.service.ts
+import { Service } from "typedi";
+import { UserRepository } from "../repository/user.repository";
+
+@Service()
+export class UserService{
+  constructor(private userRepository : UserRepository){}
+
+  sayHello(name : string) : string{
+    return `User Service Hello ${name}`;
+  }
+
+  async findAll(){
+    return await this.userRepository.findAll();
+  }
+}
+```
+서비스는 nest와 별 반 차이 없습니다.
+
+다만 @Injectable()을 쓰지 않는다는 것과 차이가 있는데요.
+@Service()가 비슷한 역할을 하고 있기 때문에 큰 차이 없이 사용하면 됩니다.
+
+
+# repository
+```
+import { Service } from 'typedi';
+import { Database } from '../config/Database';
+
+@Service()
+export class UserRepository {
+	async findAll() {
+		const connection = await Database.getInstance().getConnection();
+		try {
+			const [rows] = await connection.query('SELECT * FROM stable_user', []);
+			return rows;
+		} finally {
+			// 연결을 반환하여 pool에 다시 넣습니다.
+			connection.release();
+		}
+	}
+}
+
+```
+
+repository는 데이터베이스 관련 처리를 담당합니다.
+MySQL을 기준이며, SQL을 그대로 넣고 있습니다.
+
+그래서 Sequelize와 같은 ORM을 사용할 수 있는 방법을 생각하고 있습니다.
+(시간이 좀 필요합니다.)
