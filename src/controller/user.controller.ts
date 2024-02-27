@@ -1,5 +1,5 @@
 // user.controller.ts
-import { JsonController, Get, Req, Res } from 'routing-controllers';
+import { JsonController, Get, Req, Res, Post } from 'routing-controllers';
 import { Container } from 'typedi';
 import { UserService } from '../service/user.service';
 import { Response, NextFunction, Request } from 'express';
@@ -25,5 +25,10 @@ export class UserController {
       console.error(error);
       next(error);
     }
+  }
+
+  @Post('/all')
+  findAll(@Req() request: Request, @Res() response: Response){
+    return this.userService.findAll();
   }
 }
