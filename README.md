@@ -1,26 +1,12 @@
 # 타입스크립트가 적용된 Express 서버
 
-express는 node.js 기반 웹 프레임워크입니다.
-
+express는 node.js 기반 웹 프레임워크입니다.<br>
 자유도가 지나치게 높은 나머지, 프로젝트 구조를 어떻게 잡아야 할 지 알려주지 않습니다.
-
-
-매번 프로젝트를 만들 때마다 서버 구조를 잡는 것은 상당히 번거롭습니다.
-
+<br><br>
+매번 프로젝트를 만들 때마다 서버 구조를 잡는 것은 상당히 번거롭습니다.<br>
 때문에, custom express server를 구축했습니다. 
 
-
-
 # loader
-기존의 express는 아래와 같이 라우터를 정했을 겁니다.
-
-```
-...
-router.get('/', (req, res, next)=>{
-  ...
-})
-```
-
 useExpressServer는 클래스 형태로 라우터를 지정해줍니다.
 
 ```
@@ -38,7 +24,7 @@ export async function setExpress(app: express.Application) {
   });
 }
 ```
-loader 내 express.ts 파일에서 서버 옵션을 추가해주면 됩니다.
+loader 내 express.ts 파일에서 서버 옵션을 추가해주면 됩니다.<br>
 예를 들어, cors를 적용한다면, 아래처럼 적으면 되겠죠?
 
 ```
@@ -60,6 +46,17 @@ export async function setExpress(app: express.Application) {
 
 
 # Controller
+
+기존의 express는 아래와 같이 라우터를 정했을 겁니다.
+
+```
+...
+router.get('/', (req, res, next)=>{
+  ...
+})
+```
+
+
 아래는 클래스형태로 작성된 user.controller.ts의 예시입니다.
 
 ```
@@ -92,6 +89,8 @@ export class UserController {
 }
 ```
 
+## 컨트롤러가 굳이 클래스형태여야 함?
+
 Service와 Repository도 클래스 형태이므로, 일관성 있는 구조를 유지할 수 있습니다.
 
 ### 문제점
@@ -109,7 +108,7 @@ export class UserController {
 
 ```
 
-일관성 있는 구조를 유지해야 하므로, 최대한 빨리 해결방법을 찾아보겠습니다.
+일관성 있는 구조를 유지해야 하므로, 최대한 빨리 해결방법을 찾아보겠습니다.<br>
 만약 방법이 없다면 Controller는 Container에서 Service를 받아오는 방식을 그대로 두겠습니다.
 
 
@@ -133,9 +132,8 @@ export class UserService{
   }
 }
 ```
-서비스는 nest와 별 반 차이 없습니다.
-
-다만 @Injectable()을 쓰지 않는다는 것과 차이가 있는데요.
+서비스는 nest와 별 반 차이 없습니다.<br><br>
+다만 @Injectable()을 쓰지 않는다는 것과 차이가 있는데요.<br>
 @Service()가 비슷한 역할을 하고 있기 때문에 큰 차이 없이 사용하면 됩니다.
 
 
@@ -159,9 +157,8 @@ export class UserRepository {
 }
 
 ```
+repository는 데이터베이스 관련 처리를 담당합니다.<br>
+MySQL을 기준이며, SQL을 그대로 넣고 있습니다.<br><br>
 
-repository는 데이터베이스 관련 처리를 담당합니다.
-MySQL을 기준이며, SQL을 그대로 넣고 있습니다.
-
-그래서 Sequelize와 같은 ORM을 사용할 수 있는 방법을 생각하고 있습니다.
+그래서 Sequelize와 같은 ORM을 사용할 수 있는 방법을 생각하고 있습니다.<br>
 (시간이 좀 필요합니다.)
