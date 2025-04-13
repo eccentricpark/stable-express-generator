@@ -61,32 +61,29 @@ router.get('/', (req, res, next)=>{
 
 ```
 // user.controller.ts
-...
+// user.controller.ts
+import { JsonController, Get, Post } from 'routing-controllers';
+import { Service } from 'typedi';
+import { UserService } from './user.service';
 
+@Service()
 @JsonController('/user')
 export class UserController {
-  private userService: UserService;
-
-  constructor() {
-    this.userService = Container.get(UserService); 
-  }
+  constructor(
+    private readonly userService: UserService
+  ) {}
 
   @Get('/')
-  sayHello(@Req() request: Request, @Res() response: Response, next : NextFunction) {
-    try {
-      const say = this.userService.sayHello("Park");
-      return response.status(200).json({
-        data: say,
-        message: "This is user router"
-      });
-    } catch (error) {
-      console.error(error);
-      next(error);
-    }
+  sayHello() {
+    return this.userService.sayHello("Deno");
   }
 
-  ...
+  @Post('/profile')
+  findAll(){
+    return this.userService.findAll();
+  }
 }
+
 ```
 
 ## 컨트롤러가 굳이 클래스형태여야 함?
@@ -94,22 +91,12 @@ export class UserController {
 Service와 Repository도 클래스 형태이므로, 일관성 있는 구조를 유지할 수 있습니다.
 
 ### 문제점
-Controller에서 Container를 쓰는데 아래와 같은 코드로 작성하면 오동작합니다.
+Container.get()을 사용해야 했던 문제를 해결했습니다.<br><br>
 
-```
-// user.controller.ts
-@JsonController('/user')
-export class UserController {
-
-  // 오류 발생!
-  constructor(private userService: UserService) {}
-  ...
-}
-
-```
-
-일관성 있는 구조를 유지해야 하므로, 최대한 빨리 해결방법을 찾아보겠습니다.<br>
-만약 방법이 없다면 Controller는 Container에서 Service를 받아오는 방식을 그대로 두겠습니다.
+routing-controllers에 있는 UseContainer에<br>
+typeDI의 Container를 연결하면 해결됩니다.<br><br>
+이 때, 모든 컨트롤러에는 @Service()를 추가해야 합니다.<br>
+공통 응답 핸들러에도 @Service()를 추가해야 합니다. (컨트롤러에서 동작하니까)
 
 
 # service
@@ -140,25 +127,36 @@ export class UserService{
 # repository
 ```
 import { Service } from 'typedi';
-import { Database } from '../config/Database';
+import { useConnection, useTransaction } from '../../config/database-handler';
 
+/**
+ * Repository는 필요하면 커스텀하고 필요없으면 삭제
+ */
 @Service()
 export class UserRepository {
-	async findAll() {
-		const connection = await Database.getInstance().getConnection();
-		try {
-			const [rows] = await connection.query('SELECT * FROM stable_user', []);
-			return rows;
-		} finally {
-			// 연결을 반환하여 pool에 다시 넣습니다.
-			connection.release();
-		}
+	findAll() {
+		return {
+			name : "Test Developer",
+			age : "25",
+			message : "Hello!"
+		};
 	}
+
+	// 데이터베이스 쿼리는 아래처럼 작성하세요.
+	// insert, update, delete는 useTransaction으로 바꾸고 적절한 SQL을 적용
+	async findOneByAniName(name: string) {
+    return useConnection(async (connection) => {
+      const [rows] = await connection.query(`SELECT name, age, message FROM T_USER WHERE name = ?`, [`%${name}%`]);
+      return rows;
+    });
+  }
 }
+
 
 ```
 repository는 데이터베이스 관련 처리를 담당합니다.<br>
 MySQL을 기준이며, SQL을 그대로 넣고 있습니다.<br><br>
+
 
 그래서 Sequelize와 같은 ORM을 사용할 수 있는 방법을 생각하고 있습니다.<br>
 (시간이 좀 필요합니다.)
