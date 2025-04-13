@@ -1,8 +1,7 @@
 // user.controller.ts
-import { JsonController, Get, Req, Res, Post } from 'routing-controllers';
+import { JsonController, Get, Post } from 'routing-controllers';
 import { Service } from 'typedi';
 import { UserService } from './user.service';
-import { Response, NextFunction, Request } from 'express';
 
 @Service()
 @JsonController('/user')
