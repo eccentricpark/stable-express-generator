@@ -97,6 +97,72 @@ routing-controllers에 있는 UseContainer에<br>
 typeDI의 Container를 연결하면 해결됩니다.<br><br>
 이 때, 모든 컨트롤러에는 @Service()를 추가해야 합니다.<br>
 공통 응답 핸들러에도 @Service()를 추가해야 합니다. (컨트롤러에서 동작하니까)
+<br><br><br>
+
+# response
+
+응답은 모두 middlewares에서 처리했습니다.<br>
+만약 마음에 안든다면 재정의하십시오.<br>
+
+```
+// src/interceptors/GlobalResponseInterceptor.ts
+import { Interceptor, InterceptorInterface, Action } from 'routing-controllers';
+import { Service } from 'typedi';
+
+/**
+ * Controller에서 return한 값을 { data: ..., message: 'OK' } 형태로 감싸주는 인터셉터
+ * 에러 상황은 별도의 글로벌 에러 미들웨어에서 처리됨
+ */
+@Service()
+@Interceptor()
+export class GlobalResponseInterceptor implements InterceptorInterface {
+  intercept(action: Action, content: any) {
+    // 이미 (data, message) 구조라면 그대로 반환하거나,
+    // 반환 구조 커스터마이징 하고 싶으면 여기서 처리
+    // if (content && (content.data || content.message)) {
+    //   return content;
+    // }
+
+    return content;
+  }
+}
+```
+
+# error handler
+마찬가지로 공통 핸들러로 처리했습니다.<br>
+이 또한 마음에 안들면 재정의하고<br>
+각 기능별, 에러 처리가 별도로 필요하면<br>
+컨트롤러에서 따로 정의하십시오.<br>
+
+```
+// src/middlewares/GlobalErrorHandler.ts
+import {
+  ExpressErrorMiddlewareInterface,
+  Middleware,
+} from 'routing-controllers';
+import { Service } from 'typedi';
+import { Request, Response } from 'express';
+
+/**
+ * Controller 혹은 Service에서 throw된 예외를 일괄적으로 처리해주는 전역 에러 미들웨어
+ */
+@Service()
+@Middleware({ type: 'after' })
+export class GlobalErrorHandler implements ExpressErrorMiddlewareInterface {
+  error(error: any, request: Request, response: Response) {
+    // 로깅 처리 (winston 등)
+    console.error('[GlobalErrorHandler]', error);
+
+    // routing-controllers의 HttpError를 상속하거나
+    // 커스텀 에러 클래스에 따라 다른 상태 코드를 매핑할 수 있음
+    const statusCode = error.httpCode || 404;
+    return response.status(statusCode).json({
+      message: error.message || 'Bad Request',
+      data: null,
+    });
+  }
+}
+```
 
 
 # service
@@ -125,6 +191,7 @@ export class UserService{
 
 
 # repository
+
 ```
 import { Service } from 'typedi';
 import { useConnection, useTransaction } from '../../config/database-handler';
@@ -152,8 +219,8 @@ export class UserRepository {
   }
 }
 
-
 ```
+
 repository는 데이터베이스 관련 처리를 담당합니다.<br>
 MySQL을 기준이며, SQL을 그대로 넣고 있습니다.<br><br>
 
