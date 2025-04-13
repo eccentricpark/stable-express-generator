@@ -1,5 +1,5 @@
 import { Service } from "typedi";
-import { UserRepository } from "../repository/user.repository";
+import { UserRepository } from "./user.repository";
 
 @Service()
 export class UserService{
@@ -9,7 +9,7 @@ export class UserService{
     return `User Service Hello ${name}`;
   }
 
-  async findAll(){
-    return await this.userRepository.findAll();
+  findAll(){
+    return this.userRepository.findAll();
   }
 }
