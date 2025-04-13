@@ -10,17 +10,26 @@ express는 node.js 기반 웹 프레임워크입니다.<br>
 useExpressServer는 클래스 형태로 라우터를 지정해줍니다.
 
 ```
-// loader/express.ts
 import express from "express";
-import { useExpressServer } from 'routing-controllers';
-import path from 'path';
+import morgan from "morgan";
+import cors from 'cors';
+import { useExpressServer, useContainer } from 'routing-controllers';
+import { Container } from "typedi";
+import { GlobalErrorHandler } from "../middlewares/global-error-handler";
+import { GlobalResponseInterceptor } from "../middlewares/global-response-interceptor";
+import { UserController } from "../features/user/user.controller";
+import { AppController } from "../app.controller";
 
 export async function setExpress(app: express.Application) {
-
+  useContainer(Container);
   app.use(express.json());
   app.use(express.urlencoded({ extended: false }));
+  app.use(cors());
+  app.use(morgan('dev'));
   useExpressServer(app, {
-    controllers: [path.join(`${__dirname}/../controller/*`)],
+    controllers: [UserController, AppController],
+    interceptors: [GlobalResponseInterceptor],
+    middlewares: [GlobalErrorHandler]
   });
 }
 ```
